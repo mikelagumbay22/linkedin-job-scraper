@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Calendar, Users, Briefcase, User } from 'lucide-react';
+import { ExternalLink, Calendar, Users, Briefcase, User, MapPin } from 'lucide-react';
 import { JobListing } from '@/types/job';
 
 interface JobCardProps {
