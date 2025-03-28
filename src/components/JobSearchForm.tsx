@@ -5,10 +5,15 @@ import LoginForm from './LoginForm';
 import SearchForm from './SearchForm';
 import JobTable from './JobTable';
 import { useJobSearch } from '@/hooks/useJobSearch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
+import { exportJobsToCSV } from '@/utils/csvExport';
 
 const JobSearchForm: React.FC = () => {
   const { searchParams, isLoading, jobListings, handleInputChange, handleSubmit } = useJobSearch();
+
+  const handleExportCSV = () => {
+    exportJobsToCSV(jobListings);
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6">
@@ -52,7 +57,18 @@ const JobSearchForm: React.FC = () => {
 
       {!isLoading && jobListings.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Job Listings ({jobListings.length})</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Job Listings ({jobListings.length})</h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExportCSV}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV
+            </Button>
+          </div>
           <JobTable jobs={jobListings} />
         </div>
       )}
