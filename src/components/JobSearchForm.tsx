@@ -17,6 +17,21 @@ const JobSearchForm: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6">
+      <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="text-lg font-medium text-yellow-800 mb-2">Important Information</h3>
+        <p className="text-yellow-700 mb-2">
+          This application will run a Python script that requires:
+        </p>
+        <ul className="list-disc pl-5 text-yellow-700 mb-2">
+          <li>Python 3.7 or higher installed on your system</li>
+          <li>Flask API running locally on port 5000</li>
+          <li>Chrome browser installed</li>
+        </ul>
+        <p className="text-yellow-700">
+          To run the Flask API: navigate to the api folder and run <code className="bg-yellow-100 px-2 py-1 rounded">pip install -r requirements.txt</code> followed by <code className="bg-yellow-100 px-2 py-1 rounded">python app.py</code>
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <LoginForm 
