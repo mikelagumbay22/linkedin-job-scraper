@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import LoginForm from './LoginForm';
 import SearchForm from './SearchForm';
-import JobCard from './JobCard';
+import JobTable from './JobTable';
 import { useJobSearch } from '@/hooks/useJobSearch';
 import { Loader2 } from 'lucide-react';
 
@@ -53,11 +53,7 @@ const JobSearchForm: React.FC = () => {
       {!isLoading && jobListings.length > 0 && (
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Job Listings ({jobListings.length})</h2>
-          <div className="space-y-6">
-            {jobListings.map((job, index) => (
-              <JobCard key={index} job={job} />
-            ))}
-          </div>
+          <JobTable jobs={jobListings} />
         </div>
       )}
     </div>
