@@ -29,7 +29,7 @@ class LinkedInOpener:
             'LINKEDIN_PASSWORD': password,
             'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'MAX_LOGIN_ATTEMPTS': 3,
-            'DELAY_BETWEEN_ACTIONS': (5, 10),
+            'DELAY_BETWEEN_ACTIONS': (10, 13),
             'SCREENSHOT_ON_ERROR': True
         }
         self.driver = None
@@ -268,8 +268,11 @@ class LinkedInOpener:
             'linkedin_employees': "N/A",
             'description': "N/A",
             'recruiter_name': "N/A",
-            'recruiter_linkedin': "N/A"
+            'recruiter_linkedin': "N/A",
+            'companyUrl': "N/A"
         }
+
+        
 
         # Posted Time
         try:
@@ -345,9 +348,24 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Recruiter section not found: {str(e)}")
 
+        # Extracting the company LinkedIn URL
+        try:
+            company_link_elem = self.driver.find_element(
+                By.CSS_SELECTOR, 
+                "div.jobs-company__box a.link-without-visited-state"
+            )
+            company_link = company_link_elem.get_attribute("href") if company_link_elem else ""
+            if company_link:
+                details['companyUrl'] =  company_link
+            else:
+                details['companyUrl'] = "N/A"
+        except Exception as e:
+            details['companyUrl'] = "N/A"
+            print(f"Error extracting company link: {e}")
+
         return details
 
-    def _scroll_page(self, scroll_pause_time: float = 1.0, max_scrolls: int = 5):
+    def _scroll_page(self, scroll_pause_time: float = 2.0, max_scrolls: int = 10):
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         scrolls = 0
         
@@ -406,7 +424,7 @@ def scrape_jobs():
             search_params.append(f"location={location.replace(' ', '%20')}")
         
         params_string = "&".join(search_params)
-        target_url = f"https://www.linkedin.com/jobs/search/?{params_string}"
+        target_url = f"https://www.linkedin.com/jobs/search/?{params_string}&f_TPR=r86400"
         
         # Initialize the scraper with visible browser
         opener = LinkedInOpener(email=email, password=password)
@@ -415,7 +433,7 @@ def scrape_jobs():
             'MAX_LOGIN_ATTEMPTS': 3,
             'DELAY_BETWEEN_ACTIONS': (2, 4),  # Reduced delay for better performance
             'PAGE_LOAD_TIMEOUT': 30,  # Reduced timeout
-            'ELEMENT_TIMEOUT': 20  # Reduced timeout
+            'ELEMENT_TIMEOUT': 30  # Reduced timeout
         })
         
         print(f"Starting job search with URL: {target_url}")

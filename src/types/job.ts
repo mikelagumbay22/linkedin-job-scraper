@@ -12,6 +12,7 @@ export interface JobListing {
   recruiter_linkedin: string;
   url: string;
   logo_url: string;
+  companyUrl: string;
 }
 
 export interface SearchParams {

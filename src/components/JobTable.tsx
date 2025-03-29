@@ -61,6 +61,10 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                     <ExternalLink className="h-4 w-4 mr-1" />
                     View
                   </Button>
+                  <Button size="sm" onClick={() => window.open(job.companyUrl, '_blank')}>
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Company
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>
