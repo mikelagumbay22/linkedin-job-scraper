@@ -13,6 +13,7 @@ export interface JobListing {
   url: string;
   logo_url: string;
   companyUrl: string;
+  domain: string;
 }
 
 export interface SearchParams {

@@ -20,6 +20,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
             <TableHead>Title</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Posted</TableHead>
+            <TableHead>Domain</TableHead>
             <TableHead>Industry</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Recruiter</TableHead>
@@ -48,6 +49,9 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
               <TableCell>
                 <Badge variant="outline">{job.posted_time}</Badge>
               </TableCell>
+              <TableCell>
+                <Badge variant="outline">{job.domain}</Badge>
+              </TableCell>
               <TableCell className="truncate max-w-[150px]">{job.industry}</TableCell>
               <TableCell>{job.employees_range}</TableCell>
               <TableCell className="truncate max-w-[150px]">{job.recruiter_name}</TableCell>
@@ -63,8 +67,9 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                   </Button>
                   <Button size="sm" onClick={() => window.open(job.companyUrl, '_blank')}>
                     <ExternalLink className="h-4 w-4 mr-1" />
-                    Company
+                    Company LinkedIn
                   </Button>
+
                 </div>
               </TableCell>
             </TableRow>

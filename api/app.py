@@ -14,7 +14,6 @@ from selenium.webdriver.remote.webelement import WebElement
 from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
-# Update CORS configuration to match Vite server port
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080"]}})
 
 class LinkedInOpener:
@@ -23,7 +22,7 @@ class LinkedInOpener:
             'HEADLESS': False,
             'PAGE_LOAD_TIMEOUT': 60,
             'ELEMENT_TIMEOUT': 30,
-            'CHROME_PROFILE_PATH': None,  # We'll set this dynamically
+            'CHROME_PROFILE_PATH': None,
             'CHROME_PROFILE_NAME': 'Default',
             'LINKEDIN_EMAIL': email,
             'LINKEDIN_PASSWORD': password,
@@ -38,7 +37,6 @@ class LinkedInOpener:
     def init_driver(self):
         chrome_options = Options()
         
-        # Only add profile directory if we have a valid path
         if self.config['CHROME_PROFILE_PATH']:
             chrome_options.add_argument(f"--user-data-dir={self.config['CHROME_PROFILE_PATH']}")
             chrome_options.add_argument(f"--profile-directory={self.config['CHROME_PROFILE_NAME']}")
@@ -57,7 +55,6 @@ class LinkedInOpener:
             chrome_options.add_argument("--headless=new")
         
         try:
-            # Use WebDriver Manager to handle ChromeDriver installation
             service = Service(ChromeDriverManager().install())
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             self.driver.set_page_load_timeout(self.config['PAGE_LOAD_TIMEOUT'])
@@ -136,22 +133,112 @@ class LinkedInOpener:
             self._handle_error("Login", e)
             return False
 
+    def scrape_company_domain(self, company_url: str) -> str:
+        """Scrape company domain from LinkedIn company page"""
+        try:
+            # Open new window
+            self.driver.execute_script("window.open('');")
+            self.driver.switch_to.window(self.driver.window_handles[-1])
+            
+            print(f"Opening company page: {company_url}")
+            self.driver.get(company_url)
+            
+            # Wait for page to load
+            WebDriverWait(self.driver, self.config['ELEMENT_TIMEOUT']).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            time.sleep(2)
+            
+            # Try to find and click the About tab
+            try:
+                about_button = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "a.org-page-navigation__item-anchor[href*='/about/']"))
+                )
+                self.driver.execute_script("arguments[0].click();", about_button)
+                print("Clicked About tab")
+                
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "section.org-about-module"))
+                )
+                time.sleep(1)
+            except Exception as e:
+                print(f"Could not find/click About tab: {str(e)}")
+
+            # Method 1: Try primary website link
+            try:
+                website_elem = self.driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "dl dd.mb4.t-black--light.text-body-medium a.link-without-visited-state"
+                )
+                full_url = website_elem.get_attribute("href")
+                print(f"Method 1 - Found URL: {full_url}")
+                
+                if full_url and full_url.startswith("http"):
+                    domain_parts = full_url.split('/')
+                    domain = '/'.join(domain_parts[:3]) + '/'
+                    print(f"Trimmed domain: {domain}")
+                    return domain
+            except Exception as e:
+                print(f"Method 1 failed: {str(e)}")
+
+            # Method 2: Try alternative website selector
+            try:
+                website_elem = self.driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "a[data-test-id='about-website'] span.link-without-visited-state"
+                )
+                full_url = website_elem.text.strip()
+                print(f"Method 2 - Found URL: {full_url}")
+                
+                if full_url and full_url.startswith("http"):
+                    domain_parts = full_url.split('/')
+                    domain = '/'.join(domain_parts[:3]) + '/'
+                    print(f"Trimmed domain: {domain}")
+                    return domain
+            except Exception as e:
+                print(f"Method 2 failed: {str(e)}")
+
+            # Method 3: Look for any link in about section
+            try:
+                website_elem = self.driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "section.org-about-module a[href*='http']"
+                )
+                full_url = website_elem.get_attribute("href")
+                print(f"Method 3 - Found URL: {full_url}")
+                
+                if full_url and full_url.startswith("http"):
+                    domain_parts = full_url.split('/')
+                    domain = '/'.join(domain_parts[:3]) + '/'
+                    print(f"Trimmed domain: {domain}")
+                    return domain
+            except Exception as e:
+                print(f"Method 3 failed: {str(e)}")
+
+            print("All methods failed to find domain")
+            return "N/A"
+                    
+        except Exception as e:
+            self._handle_error("Company domain scraping", e)
+            return "N/A"
+        finally:
+            if len(self.driver.window_handles) > 1:
+                self.driver.close()
+                self.driver.switch_to.window(self.driver.window_handles[0])
+
     def scrape_job_listings(self) -> List[Dict[str, str]]:
         if not self.driver:
             print("Driver not initialized")
             return []
             
         try:
-            # Wait for the job cards to load
             print("Waiting for job cards to load...")
             WebDriverWait(self.driver, self.config['ELEMENT_TIMEOUT']).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.job-card-container--clickable"))
             )
             
-            # Add a small delay to ensure all cards are loaded
             time.sleep(2)
             
-            # Get all job cards
             job_cards = self.driver.find_elements(
                 By.CSS_SELECTOR, 
                 "div.job-card-container--clickable"
@@ -162,20 +249,17 @@ class LinkedInOpener:
             jobs = []
             for index, card in enumerate(job_cards, 1):
                 try:
-                    # Scroll the card into view
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", card)
-                    time.sleep(1)  # Wait for scroll to complete
+                    time.sleep(1)
                     
                     print(f"Processing job card #{index}")
                     
-                    # Click the card
                     try:
                         card.click()
                     except Exception as e:
                         print(f"Failed to click card #{index}: {e}")
                         continue
                     
-                    # Wait for details panel
                     try:
                         WebDriverWait(self.driver, self.config['ELEMENT_TIMEOUT']).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, "div.jobs-search__job-details--wrapper"))
@@ -184,16 +268,26 @@ class LinkedInOpener:
                         print(f"Details panel didn't load for job #{index}: {e}")
                         continue
                     
-                    # Extract job details
                     job = self._extract_job_details(card)
                     panel_details = self._extract_job_panel_details()
                     job.update(panel_details)
                     
+                    # Get company URL and scrape domain for this specific job
+                    try:
+                        company_url_elem = self.driver.find_element(
+                            By.CSS_SELECTOR, 
+                            "div.jobs-company__box a.link-without-visited-state"
+                        )
+                        company_url = company_url_elem.get_attribute("href").split('?')[0]
+                        job['domain'] = self.scrape_company_domain(company_url)
+                    except Exception as e:
+                        print(f"Failed to get company URL for job #{index}: {e}")
+                        job['domain'] = "N/A"
+                    
                     if job:
                         jobs.append(job)
-                        print(f"Successfully scraped job #{index}: {job['title'][:30]}...")
+                        print(f"Successfully scraped job #{index}: {job['title'][:30]}... Domain: {job['domain']}")
                     
-                    # Random delay between jobs
                     time.sleep(random.uniform(1, 2))
                     
                 except Exception as e:
@@ -218,7 +312,6 @@ class LinkedInOpener:
             job['title'] = "N/A"
             print(f"Job Title : {job['title']}")
                 
-        # Extract company name - correct selector
         try:
             company_elem = card.find_element(
                 By.CSS_SELECTOR, 
@@ -269,12 +362,10 @@ class LinkedInOpener:
             'description': "N/A",
             'recruiter_name': "N/A",
             'recruiter_linkedin': "N/A",
-            'companyUrl': "N/A"
+            'companyUrl': "N/A",
+            'domain': "N/A"
         }
 
-        
-
-        # Posted Time
         try:
             posted_elem = self.driver.find_element(
                 By.CSS_SELECTOR, 
@@ -284,7 +375,6 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Posted time error: {str(e)}")
 
-        # Industry
         try:
             industry_div = self.driver.find_element(
                 By.CSS_SELECTOR, 
@@ -296,7 +386,6 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Industry error: {str(e)}")
 
-        # Employee Info
         try:
             employee_elems = self.driver.find_elements(
                 By.CSS_SELECTOR, 
@@ -308,7 +397,6 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Employee info error: {str(e)}")
 
-        # Description
         try:
             desc_div = self.driver.find_element(
                 By.CSS_SELECTOR, 
@@ -318,14 +406,12 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Description error: {str(e)}")
 
-        # Recruiter Info
         try:
             hiring_section = self.driver.find_element(
                 By.CSS_SELECTOR,
                 "div.job-details-people-who-can-help__section--two-pane"
             )
             
-            # Name
             try:
                 name_elem = hiring_section.find_element(
                     By.CSS_SELECTOR,
@@ -335,7 +421,6 @@ class LinkedInOpener:
             except Exception as e:
                 print(f"Recruiter name error: {str(e)}")
 
-            # LinkedIn URL
             try:
                 link_elem = hiring_section.find_element(
                     By.CSS_SELECTOR,
@@ -348,7 +433,6 @@ class LinkedInOpener:
         except Exception as e:
             print(f"Recruiter section not found: {str(e)}")
 
-        # Extracting the company LinkedIn URL
         try:
             company_link_elem = self.driver.find_element(
                 By.CSS_SELECTOR, 
@@ -356,7 +440,7 @@ class LinkedInOpener:
             )
             company_link = company_link_elem.get_attribute("href") if company_link_elem else ""
             if company_link:
-                details['companyUrl'] =  company_link
+                details['companyUrl'] = company_link
             else:
                 details['companyUrl'] = "N/A"
         except Exception as e:
@@ -387,7 +471,7 @@ class LinkedInOpener:
                 if not self.login_to_linkedin():
                     print("Continuing without login...")
             
-            print(f"Opening: {url}")
+            print(f"Opening job search: {url}")
             self.driver.get(url)
             
             WebDriverWait(self.driver, self.config['ELEMENT_TIMEOUT']).until(
@@ -416,7 +500,6 @@ def scrape_jobs():
         keywords = data.get('keywords', '')
         location = data.get('location', '')
         
-        # Create URL with search parameters
         search_params = []
         if keywords:
             search_params.append(f"keywords={keywords.replace(' ', '%20')}")
@@ -426,14 +509,13 @@ def scrape_jobs():
         params_string = "&".join(search_params)
         target_url = f"https://www.linkedin.com/jobs/search/?{params_string}&f_TPR=r86400"
         
-        # Initialize the scraper with visible browser
         opener = LinkedInOpener(email=email, password=password)
         opener.config.update({
-            'HEADLESS': False,  # Make sure browser is visible
+            'HEADLESS': False,
             'MAX_LOGIN_ATTEMPTS': 3,
-            'DELAY_BETWEEN_ACTIONS': (2, 4),  # Reduced delay for better performance
-            'PAGE_LOAD_TIMEOUT': 30,  # Reduced timeout
-            'ELEMENT_TIMEOUT': 30  # Reduced timeout
+            'DELAY_BETWEEN_ACTIONS': (2, 4),
+            'PAGE_LOAD_TIMEOUT': 30,
+            'ELEMENT_TIMEOUT': 30
         })
         
         print(f"Starting job search with URL: {target_url}")
