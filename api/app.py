@@ -216,24 +216,28 @@ class LinkedInOpener:
             job['title'] = title_elem.text.strip()
         except:
             job['title'] = "N/A"
+            print(f"Job Title : {job['title']}")
                 
+        # Extract company name - correct selector
         try:
             company_elem = card.find_element(
                 By.CSS_SELECTOR, 
-                "span.lhTobqFRnhXjIxsPALxnKZTvtIokoQuCLO"
+                "div.artdeco-entity-lockup__subtitle span"
             )
-            job['company'] = company_elem.text.strip()
+            job['company'] = company_elem.text.strip() if company_elem else "N/A"
         except:
             job['company'] = "N/A"
-            
+            print(f"Company : {job['company']}")
+        
         try:
             location_elem = card.find_element(
                 By.CSS_SELECTOR, 
-                "li.nnOoYztMdggrEcztrGDGSlUMxBgYhtrXQEvk span"
+                "ul.job-card-container__metadata-wrapper li span"
             )
-            job['location'] = location_elem.text.strip()
+            job['location'] = location_elem.text.strip() if location_elem else "N/A"
         except:
             job['location'] = "N/A"
+            print(f"Location : {job['location']}")
             
         try:
             url_elem = card.find_element(
@@ -243,6 +247,7 @@ class LinkedInOpener:
             job['url'] = url_elem.get_attribute("href").split('?')[0]
         except:
             job['url'] = "N/A"
+            print(f"URL : {job['url']}")
             
         try:
             logo_elem = card.find_element(
@@ -252,7 +257,7 @@ class LinkedInOpener:
             job['logo_url'] = logo_elem.get_attribute("src")
         except:
             job['logo_url'] = "N/A"
-            
+            print(f"Logo URL : {job['logo_url']}")  
         return job
 
     def _extract_job_panel_details(self) -> Dict[str, str]:
