@@ -22,8 +22,8 @@ class LinkedInOpener:
             'HEADLESS': False,
             'PAGE_LOAD_TIMEOUT': 60,
             'ELEMENT_TIMEOUT': 30,
-            'CHROME_PROFILE_PATH': None,
-            'CHROME_PROFILE_NAME': 'Default',
+            'CHROME_PROFILE_PATH': r"C:\Users\mikel\AppData\Local\Google\Chrome\User Data\Profile 2",
+            'CHROME_PROFILE_NAME': 'Profile 2',
             'LINKEDIN_EMAIL': email,
             'LINKEDIN_PASSWORD': password,
             'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -36,36 +36,21 @@ class LinkedInOpener:
 
     def init_driver(self):
         chrome_options = Options()
-        
-        if self.config['CHROME_PROFILE_PATH']:
-            chrome_options.add_argument(f"--user-data-dir={self.config['CHROME_PROFILE_PATH']}")
-            chrome_options.add_argument(f"--profile-directory={self.config['CHROME_PROFILE_NAME']}")
-        
-        chrome_options.add_argument("--no-first-run")
-        chrome_options.add_argument("--no-default-browser-check")
-        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument(f"user-agent={self.config['USER_AGENT']}")
+        chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument("--start-maximized")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_argument(f"user-agent={self.config['USER_AGENT']}")
         
-        if self.config['HEADLESS']:
-            chrome_options.add_argument("--headless=new")
+        service = Service("C:/Users/mikel/Renigo/Python/linkedin-job-scraper/chromedriver.exe")
         
         try:
-            service = Service(ChromeDriverManager().install())
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             self.driver.set_page_load_timeout(self.config['PAGE_LOAD_TIMEOUT'])
             return True
         except Exception as e:
             print(f"Failed to initialize Chrome: {str(e)}")
-            print("\nTROUBLESHOOTING:")
-            print("1. Make sure Chrome is installed on your system")
-            print("2. Try running Chrome manually first to ensure it works")
-            print("3. If using antivirus, try temporarily disabling it")
-            print("4. Try running the script with administrator privileges")
             return False
 
     def _human_type(self, element, text: str) -> None:
@@ -507,7 +492,7 @@ def scrape_jobs():
             search_params.append(f"location={location.replace(' ', '%20')}")
         
         params_string = "&".join(search_params)
-        target_url = f"https://www.linkedin.com/jobs/search/?{params_string}&f_TPR=r86400"
+        target_url = f"https://www.linkedin.com/jobs/search/?{params_string}"
         
         opener = LinkedInOpener(email=email, password=password)
         opener.config.update({
